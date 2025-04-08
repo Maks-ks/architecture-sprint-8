@@ -1,0 +1,6 @@
+@ReportAPI_HostAddress = http://localhost:8000
+
+GET {{ReportAPI_HostAddress}}/reports/
+Accept: application/json
+
+###
