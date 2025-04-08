@@ -1,5 +1,6 @@
 using Keycloak.AuthServices.Authentication;
 using Keycloak.AuthServices.Authorization;
+using Microsoft.IdentityModel.Tokens;
 
 var authServerUrl = Environment.GetEnvironmentVariable("WEB_API_KEYCLOAK_URL");
 var realm = Environment.GetEnvironmentVariable("WEB_API_KEYCLOAK_REALM");
@@ -19,12 +20,18 @@ configuration["Keycloak:auth-server-url"] = authServerUrl;
 configuration["Keycloak:realm"] = realm;
 configuration["Keycloak:resource"] = clientId;
 
-services.AddKeycloakWebApiAuthentication(configuration, (x) => 
-    { 
-        x.RequireHttpsMetadata = false;
-        // x.Authority = authServerUrl;
-        // x.TokenValidationParameters.ValidIssuer = authServerUrl;
-    });
+services.AddKeycloakWebApiAuthentication(configuration, (x) =>
+{
+    x.Authority = $"{authServerUrl}/realms/{realm}";
+    x.RequireHttpsMetadata = false;
+    x.Audience = clientId;
+
+    x.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+    };
+});
 
 services.AddAuthorization(o => o.AddPolicy("IsProthetic", b =>
 {
@@ -33,6 +40,20 @@ services.AddAuthorization(o => o.AddPolicy("IsProthetic", b =>
 
 services.AddKeycloakAuthorization(configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("policy", policy =>
+    {
+        policy
+            .WithOrigins(
+                "http://localhost:3000"
+                )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -40,12 +61,7 @@ app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI();
-app.UseCors(config =>
-{
-    config.AllowAnyHeader();
-    config.AllowAnyMethod();
-    config.AllowAnyOrigin();
-});
+app.UseCors("policy");
 
 app.Logger.LogInformation(authServerUrl);
 app.Logger.LogInformation(realm);

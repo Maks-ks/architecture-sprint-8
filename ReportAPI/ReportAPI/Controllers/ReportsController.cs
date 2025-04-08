@@ -19,7 +19,7 @@ namespace ReportAPI.Controllers
             _logger = logger;
         }
 
-        //[Authorize("IsProthetic")]
+        [Authorize("IsProthetic")]
         [HttpGet(Name = "GetReports")]
         public IEnumerable<OrderInfo> Get()
         {
